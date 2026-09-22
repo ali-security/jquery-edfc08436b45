@@ -121,8 +121,11 @@ module.exports = function( grunt ) {
 					beautify: {
 						ascii_only: true
 					},
+					// Copyright year pinned to the 1.11.1 release year instead of
+					// grunt.template.today('yyyy'), so the minified banner is
+					// reproducible and matches the published dist/jquery.min.js.
 					banner: "/*! jQuery v<%= pkg.version %> | " +
-						"(c) 2005, <%= grunt.template.today('yyyy') %> jQuery Foundation, Inc. | " +
+						"(c) 2005, 2014 jQuery Foundation, Inc. | " +
 						"jquery.org/license */",
 					compress: {
 						hoist_funs: false,

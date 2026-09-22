@@ -1,0 +1,73 @@
+name: Build and pack
+
+# Build-and-pack only. The jQuery 1.11.1 test suite runs on Travis
+# (see .travis.yml), so this workflow declares no test step and no
+# test-filter input.
+on:
+  workflow_dispatch:
+
+jobs:
+  build-pack:
+    name: Build dist and npm pack (Node 0.10)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      # The public jquery-1.11.1.tgz was packed with npm 1.2.25 / Node 0.10.
+      # actions/setup-node cannot provision 0.10, and a job-level
+      # `container: node:0.10-wheezy` breaks the Actions runtime (the runner
+      # needs a modern Node inside the container), so the build runs in a
+      # one-off Docker container over the host checkout instead. The
+      # container's bundled npm is left in place: Node 0.10 cannot install a
+      # different npm major.
+      - name: Build dist and pack inside Node 0.10 container
+        run: |
+          docker run --rm -v "$PWD":/src -w /src node:0.10-wheezy sh -c '
+            set -e
+
+            # Resolve the 2014-era devDependencies through the release-date
+            # time machine, using the userinfo form old npm understands.
+            npm config set registry https://:2014-05-01T18%3A05%3A32.863Z@time-machines-npm.sealsecurity.io/
+            # Node 0.10 ships a 2014 CA store, which cannot validate the
+            # registry proxy certificate.
+            npm config set strict-ssl false
+
+            npm install
+
+            # dist/ is gitignored and therefore absent from the checkout, so
+            # the grunt default task (jsonlint, dev = build:*:* + lint,
+            # uglify, dist:*, compare_size) must build all three dist files.
+            ./node_modules/.bin/grunt
+
+            # Surface the generated headers in the log so a mismatch is
+            # visible without downloading the artifact.
+            ls -l dist/
+            head -13 dist/jquery.js
+            head -1 dist/jquery.min.js
+
+            # The published tarball also carries the nine dist/cdn/* release
+            # copies. Upstream only writes those from the jquery-release
+            # workflow (build/release.js -> makeReleaseCopies), which grunt
+            # never invokes, so run the standalone port of that function.
+            mkdir -p dist/cdn && node build_cdn_copies.js
+
+            # Prove all nine CDN copies landed before packing.
+            ls -l dist/cdn/
+
+            npm pack
+          '
+
+      # dist/ and the tarball are created by root inside the container; make
+      # them readable to the runner user before the upload step.
+      - name: Restore read access for the runner user
+        run: sudo chmod -R a+rX .
+
+      - name: Upload jquery-1.11.1.tgz
+        uses: actions/upload-artifact@v4
+        with:
+          name: jquery-1.11.1-tgz
+          path: jquery-1.11.1.tgz
+          if-no-files-found: error

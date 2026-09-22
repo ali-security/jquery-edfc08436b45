@@ -1,3 +1,36 @@
 language: node_js
 node_js:
 - '0.10'
+script:
+# Step 1, on Node 0.10: the grunt default task (jsonlint, build, jshint, jscs,
+# uglify, dist, compare_size). This is what produces dist/jquery.js, which the
+# smoke tests load, so it must run first and must stay in place. It also lints
+# test/**/*.js with jshint 2.4.4, which is why the smoke tests are written in
+# ES5 even though a modern Node executes them.
+- npm test
+
+# Step 2: switch to a modern Node just for the smoke tests. jsdom has been pure
+# JavaScript ever since 4.0.0 replaced the native Contextify module with the
+# built-in vm module, so running it needs no compiler, no node-gyp and no
+# Python 2. That is precisely why the tests are not run on Node 0.10: the newest
+# jsdom that supports Node 0.10 is 3.1.2, the last release still requiring a
+# Contextify native build.
+- nvm install 20
+- nvm use 20
+- node --version
+
+# Step 3: install jsdom into an isolated directory, never the project root.
+# Running npm install in the project root under npm 10 would try to resolve the
+# Node-0.10-era devDependencies (grunt 0.4.2 and friends) and fail. jsdom 26.1.0
+# is pinned because its engines field is "node >= 18", which every Node 20.x
+# release satisfies; jsdom 27 narrows that to "^20.19.0" and jsdom 30 drops
+# Node 20 support altogether.
+- mkdir -p /tmp/smoke-deps
+- cd /tmp/smoke-deps && npm init -y && npm install jsdom@26.1.0
+- cd "$TRAVIS_BUILD_DIR"
+
+# Step 4: run the smoke tests against the dist/jquery.js built in step 1.
+# run_all.js re-emits each test's assertion lines, prints a PASS or FAIL line
+# per test plus a final "N tests, M assertions, F failures" tally, and exits
+# non-zero when any test fails, so a genuine regression turns this leg red.
+- NODE_PATH=/tmp/smoke-deps/node_modules node "$TRAVIS_BUILD_DIR/test/node_smoke_tests/run_all.js"

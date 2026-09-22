@@ -3,6 +3,7 @@
 
 /.editorconfig
 /.gitattributes
+/.github
 /.jscs.json
 /.mailmap
 /.travis.yml
@@ -11,3 +12,4 @@
 /speed
 /test
 /Gruntfile.js
+/build_cdn_copies.js
