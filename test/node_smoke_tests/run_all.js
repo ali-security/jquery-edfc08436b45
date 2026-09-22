@@ -24,7 +24,8 @@ var path = require( "path" ),
 		"document_present_originally.js",
 		"parse_html_inert_document.js",
 		"cross_domain_script_not_executed.js",
-		"non_lowercase_boolean_attr.js"
+		"non_lowercase_boolean_attr.js",
+		"extend_prototype_pollution.js"
 	],
 	totalAssertions = 0,
 	failed = [],
