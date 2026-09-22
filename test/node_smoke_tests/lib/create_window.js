@@ -20,11 +20,25 @@ var assert = require( "assert" ),
 // default "about:blank"; parse_html_inert_document.js needs that to check that
 // relative URLs in parsed markup still resolve (gh-2965). Callers that do not
 // care about URLs keep calling createWindow() with no argument.
-module.exports = function createWindow( url ) {
+//
+// An optional runScripts is forwarded to jsdom untouched. The only value used so
+// far is "outside-only", which installs the JavaScript spec globals -- notably
+// window.eval -- on the window without letting the document run its own
+// <script> tags; cross_domain_script_not_executed.js needs it because
+// jQuery.globalEval() goes through window.eval.
+module.exports = function createWindow( url, runScripts ) {
 	var html = "<html><head></head><body></body></html>",
-		options = url ? { "url": url } : undefined,
+		options = ( url || runScripts ) ? {} : undefined,
 		window,
 		document;
+
+	if ( url ) {
+		options.url = url;
+	}
+
+	if ( runScripts ) {
+		options.runScripts = runScripts;
+	}
 
 	if ( typeof jsdom.JSDOM === "function" ) {
 
