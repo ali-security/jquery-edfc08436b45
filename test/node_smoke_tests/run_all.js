@@ -21,7 +21,8 @@ var path = require( "path" ),
 	tests = [
 		"document_missing.js",
 		"document_passed.js",
-		"document_present_originally.js"
+		"document_present_originally.js",
+		"parse_html_inert_document.js"
 	],
 	totalAssertions = 0,
 	failed = [],
